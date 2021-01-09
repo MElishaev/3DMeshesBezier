@@ -27,7 +27,7 @@ struct DrawInfo
 	{
 		cameraIndx = indx;
 	}
-
+	inline void SetViewport(int indx) { viewportIndx = indx; }
 	inline void SetFlags(unsigned int value) { flags = flags | value; }
 	inline void ClearFlags(unsigned int value) { flags = flags - value; }
 

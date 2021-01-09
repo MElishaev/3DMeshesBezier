@@ -3,6 +3,7 @@
 #include "glm\glm.hpp"
 #include "VertexArray.hpp"
 #include "Mesh.h"
+//#include "Bezier\Bezier1D.h"
 //#include "build/Curves/Bezier1D.h"
 //#include "build/Curves/Bezier2D.h"
 
@@ -39,6 +40,7 @@ public:
 	MeshConstructor(const MeshConstructor& mesh);
 	MeshConstructor(const std::string& fileName);
 	MeshConstructor::MeshConstructor(const IndexedModel& model, bool isMesh);
+	//MeshConstructor::MeshConstructor(const IndexedModel& c);
 	//MeshConstructor::MeshConstructor(Bezier2D* surf);
 
 	void Bind() { vao.Bind(); }

@@ -7,11 +7,11 @@
 
 #define GL_FLOAT 0x1406
 
-//MeshConstructor::MeshConstructor( Bezier1D* c)
+//MeshConstructor::MeshConstructor(IndexedModel c)
 //{
-//	InitLine(c->GetLine());
+//	InitLine(c);
 //}
-//
+
 //MeshConstructor::MeshConstructor(Bezier2D* surf)
 //{
 //	InitMesh(surf->GetSurface());

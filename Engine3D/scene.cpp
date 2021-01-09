@@ -94,7 +94,7 @@ void Scene::Draw(int shaderIndx, const glm::mat4& MVP, int viewportIndx, unsigne
 		{
 			glm::mat4 Model = Normal * shapes[pickedShape]->MakeTrans();
 
-			if (shaderIndx > 0)
+			if (shaderIndx > 0) // picking shader indices
 			{
 				Update(MVP, Model, shapes[pickedShape]->GetShader());
 				shapes[pickedShape]->Draw(shaders[shapes[pickedShape]->GetShader()], false);
@@ -102,6 +102,9 @@ void Scene::Draw(int shaderIndx, const glm::mat4& MVP, int viewportIndx, unsigne
 			else
 			{ //picking
 				Update(MVP, Model, 0);
+				shaders[0]->Bind();
+				shaders[0]->SetUniform1i("id", pickedShape+1);
+				shaders[0]->Unbind();
 				shapes[pickedShape]->Draw(shaders[0], true);
 			}
 		}
@@ -142,14 +145,14 @@ void Scene::ShapeTransformation(int type, float amt)
 
 bool Scene::Picking(unsigned char data[4])
 {
-		pickedShape = -1;
-		if (data[0] > 0)
-		{
-			pickedShape = data[0]-1; //r 
-			return true;
-		}
-		return false;
-		//WhenPicked();	
+	pickedShape = (int)data[0] - 1;
+	if (int(data[0]) > 1)
+	{
+		std::cout << "picked shape: " << pickedShape << "\n";
+		return true;
+	}
+	return false;
+	//WhenPicked();	
 }
 //return coordinates in global system for a tip of arm position is local system 
 void Scene::MouseProccessing(int button, int xrel, int yrel)

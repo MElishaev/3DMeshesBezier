@@ -3,6 +3,14 @@
 #include "shape.h"
 
 
+Shape::Shape(unsigned int _mode)
+{
+	mode = _mode;
+	isCopy = false;
+	shaderID = 1;
+	materialID = 0;
+}
+
 Shape::Shape(const Shape& shape, unsigned int mode)
 {
 
@@ -58,4 +66,3 @@ Shape::~Shape(void)
 			delete mesh;
 	}
 }
-

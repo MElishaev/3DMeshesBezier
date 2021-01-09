@@ -101,7 +101,7 @@ void Renderer::Draw(int infoIndx)
 
 void Renderer::DrawAll()
 {
-	for (int i =   0; i < drawInfo.size(); i++)
+	for (int i = 0; i < drawInfo.size(); i++)
 	{
 		if (!(drawInfo[i]->flags & inAction))
 			Draw( i);
@@ -111,11 +111,22 @@ void Renderer::DrawAll()
 bool Renderer::Picking(int x, int y)
 {
 	//picking from camera 0 and using shader 0
+	if (x >= 800)
+	{
+		drawInfo[0]->SetViewport(1);
+		drawInfo[0]->SetCamera(1);
+	}
+	else
+	{
+		drawInfo[0]->SetCamera(0);
+		drawInfo[0]->SetViewport(0);
+	}
 	ActionDraw();
 
 	GLint viewport[4];
 	unsigned char data[4];
 	glGetIntegerv(GL_VIEWPORT, viewport); //reading viewport parameters
+	std::cout << viewport[0] << "," << viewport[1] << "," << viewport[2] << "," << viewport[3] << std::endl;
 	glReadPixels(x, viewport[3] - y, 1, 1, GL_RGBA, GL_UNSIGNED_BYTE, data);
 	glReadPixels(x, viewport[3] - y, 1, 1, GL_DEPTH_COMPONENT, GL_FLOAT, &depth);
 	

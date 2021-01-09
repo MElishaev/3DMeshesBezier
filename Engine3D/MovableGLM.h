@@ -7,6 +7,7 @@ public:
 	MovableGLM();
 	glm::mat4 MakeTrans(const glm::mat4 &prevTransformations) const;
 	glm::mat4 MakeTrans() const;
+	glm::mat4 MakeTransNoScale() const;
 	void MyTranslate(const glm::vec3 delta, int mode);
 	void MyRotate(float angle, const glm::vec3 &vec, int mode);
 	void MyScale(const glm::vec3 scale);

@@ -6,9 +6,10 @@
 
 class Shape : public MovableGLM
 {
-private:
-
+protected:
 	MeshConstructor* mesh;
+
+private:
 	unsigned int materialID;
 	int shaderID;
 	bool isCopy;
@@ -16,6 +17,8 @@ private:
 	unsigned int viewports;
 
 public:
+
+	Shape(unsigned int _mode);
 
 	Shape(const Shape& shape, unsigned int mode);
 

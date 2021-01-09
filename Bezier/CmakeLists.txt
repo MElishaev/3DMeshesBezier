@@ -1,0 +1,6 @@
+get_filename_component(PROJ_NAME ${CMAKE_CURRENT_SOURCE_DIR} NAME)
+project(${PROJ_NAME})
+file(GLOB Bezier *.cpp *.h)
+
+add_executable(${PROJ_NAME} ${Bezier} )
+target_link_libraries(${PROJ_NAME} Engine Display ${PROJECT_SOURCE_DIR}/../res/libs/glew32s.lib ${PROJECT_SOURCE_DIR}/../res/libs/glfw3.lib opengl32.lib)
