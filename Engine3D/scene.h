@@ -25,18 +25,19 @@ public:
 	void AddShapeCopy(int indx, int parent, unsigned int mode);
 
 	int AddShader(const std::string& fileName);
+	int AddTexture(const std::vector<std::string>& faces); // for cubemap
 	int AddTexture(const std::string& textureFileName, int dim);
 	int AddTexture(int width, int height, unsigned char* data, int mode);
 	int AddMaterial(unsigned int texIndices[], unsigned int slots[], unsigned int size);
 	void ZeroShapesTrans();
 
-	virtual void Update(const glm::mat4& MVP, const glm::mat4& Normal, const int  shaderIndx) = 0;
+	virtual void Update(const glm::mat4& view, const glm::mat4& proj, const glm::mat4& MVP, const glm::mat4& Normal, const int  shaderIndx) = 0;
 	virtual void WhenTranslate() {};
 	virtual void WhenRotate() {};
 	virtual void WhenPicked() {};
 	virtual void Motion() {};
 	virtual void Reset() {};
-	virtual void Draw(int shaderIndx, const glm::mat4& MVP, int viewportIndx, unsigned int flags);
+	virtual void Draw(int shaderIndx, const glm::mat4& MVP, const glm::mat4& view, const glm::mat4& proj, int viewportIndx, unsigned int flags);
 	virtual ~Scene(void);
 
 	void ShapeTransformation(int type, float amt);
@@ -52,7 +53,10 @@ public:
 	void AddShapeViewport(int shpIndx, int viewportIndx);
 	void RemoveShapeViewport(int shpIndx, int viewportIndx);
 	void BindMaterial(Shader* s, unsigned int materialIndx);
+	void AddShapeInPlace(int type, unsigned int mode, int place);
 	void BindTexture(int texIndx, int slot) { textures[texIndx]->Bind(slot); }
+
+	glm::mat4 GetSelectionWindowTransformation() { return SelectionWindow->MakeTrans(); }
 
 	void MouseProccessing(int button, int xrel, int yrel);
 	bool inline IsActive() const { return isActive; }
@@ -60,6 +64,19 @@ public:
 	inline void SetShapeMaterial(int shpIndx, int materialIndx) { shapes[shpIndx]->SetMaterial(materialIndx); }
 	inline void SetShapeShader(int shpIndx, int shdrIndx) { shapes[shpIndx]->SetShader(shdrIndx); }
 
+	// scissors related
+	void SaveScissorsStart(double x, double y) { scissorsX = (int)x; scissorsY = (int)y; };
+	void CreateScissorsPlane(double x, double y);
+	bool IsScissoring() { return isScissor; }
+	void ToggleScissoring();
+	void ResetScissoringWindow() { scissorsWindow = glm::vec4(0, 0, 0, 0); }
+	glm::vec4 GetScissorsWindow() { return scissorsWindow; }
+	bool WindowPicking(unsigned char * pixelsData);
+
+
+	void RotateWindow(float amount, glm::vec3 vec) { SelectionWindow->MyRotate(amount, vec, 0); }
+	void TranslateWindow(glm::vec3 delta) { SelectionWindow->MyTranslate(delta, 0); }
+	glm::vec3 GetWindowTrans() { return glm::vec3(SelectionWindow->MakeTrans()[3]); }
 private:
 
 
@@ -73,6 +90,13 @@ protected:
 	std::vector<Material*> materials;
 
 	int pickedShape;
+	std::vector<int> pickedShapes;
+
+	int scissorsX;
+	int scissorsY;
+	glm::vec4 scissorsWindow;
+	Shape* SelectionWindow;
+	bool isScissor = false;
 
 	bool isActive;
 };

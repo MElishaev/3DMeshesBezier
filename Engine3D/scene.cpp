@@ -48,6 +48,12 @@ int Scene::AddShader(const std::string& fileName)
 	return (shaders.size() - 1);
 }
 
+int  Scene::AddTexture(const std::vector<std::string>& faces)
+{
+	textures.push_back(new Texture(faces));
+	return(textures.size() - 1);
+}
+
 int  Scene::AddTexture(const std::string& textureFileName, int dim)
 {
 	textures.push_back(new Texture(textureFileName, dim));
@@ -82,11 +88,19 @@ int Scene::AddMaterial(unsigned int texIndices[], unsigned int slots[], unsigned
 	return (materials.size() - 1);
 }
 
-void Scene::Draw(int shaderIndx, const glm::mat4& MVP, int viewportIndx, unsigned int flags) 
+void Scene::ToggleScissoring()
+{
+	if (!isScissor)
+		pickedShapes.erase(pickedShapes.begin(), pickedShapes.end());
+	isScissor = !isScissor;
+}
+
+void Scene::Draw(int shaderIndx, const glm::mat4& VP, const glm::mat4& view, const glm::mat4& proj ,int viewportIndx, unsigned int flags) 
 {
 	glm::mat4 Normal = MakeTrans();
 
 	int p = pickedShape;
+
 
 	for (pickedShape = 0; pickedShape < shapes.size(); pickedShape++)
 	{
@@ -94,14 +108,51 @@ void Scene::Draw(int shaderIndx, const glm::mat4& MVP, int viewportIndx, unsigne
 		{
 			glm::mat4 Model = Normal * shapes[pickedShape]->MakeTrans();
 
-			if (shaderIndx > 0) // picking shader indices
+			if (shaderIndx > 0)
 			{
-				Update(MVP, Model, shapes[pickedShape]->GetShader());
-				shapes[pickedShape]->Draw(shaders[shapes[pickedShape]->GetShader()], false);
+				Update(view, proj, VP, Model, shapes[pickedShape]->GetShader());
+				
+				if (viewportIndx == 0)
+				{
+					if (flags & 8) // scissors flag
+					{
+						glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+						glScissor(scissorsWindow.x, scissorsWindow.y, scissorsWindow.z, scissorsWindow.w);
+						Model = Normal * SelectionWindow->MakeTrans();
+						Update(view, proj, VP, Model, 3);
+						SelectionWindow->Draw(shaders[3], false);
+					}
+					else if(flags & 32)
+					{
+						glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE); 
+						if ((pickedShape > 1 && p == pickedShape) || std::find(pickedShapes.begin(), pickedShapes.end(), pickedShape) != pickedShapes.end())
+						{
+							glClear(GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT); 
+							// draw colored shapes
+							glStencilFunc(GL_ALWAYS, 1, 0xFF);
+							shapes[pickedShape]->Draw(shaders[shapes[pickedShape]->GetShader()], false);
+
+							// draw outline
+							glStencilFunc(GL_NOTEQUAL, 1, 0xFF);
+							glDisable(GL_DEPTH_TEST);
+							shapes[pickedShape]->MyScale(glm::vec3(1.1, 1.1, 1.1));
+							Model = Normal * shapes[pickedShape]->MakeTrans();
+							Update(view, proj, VP, Model, 3);
+							shapes[pickedShape]->Draw(shaders[3], false);
+							shapes[pickedShape]->MyScale(glm::vec3(1/1.1, 1/1.1, 1/1.1));
+							glEnable(GL_DEPTH_TEST); 
+							glStencilFunc(GL_ALWAYS, 1, 0xFF);
+						}
+						else
+							shapes[pickedShape]->Draw(shaders[shapes[pickedShape]->GetShader()], false);
+					}
+				}
+				else // viewport != 0
+					shapes[pickedShape]->Draw(shaders[shapes[pickedShape]->GetShader()], false);
 			}
 			else
 			{ //picking
-				Update(MVP, Model, 0);
+				Update(view, proj, VP, Model, 0);
 				shaders[0]->Bind();
 				shaders[0]->SetUniform1i("id", pickedShape+1);
 				shaders[0]->Unbind();
@@ -154,6 +205,139 @@ bool Scene::Picking(unsigned char data[4])
 	return false;
 	//WhenPicked();	
 }
+
+bool Scene::WindowPicking(unsigned char * pixelsData)
+{
+	int pixelOffset = 4;
+	int width = scissorsWindow.z;
+	int height = scissorsWindow.w;
+	int cubeMapIndx = 1;
+
+	GLint viewport[4];
+	glGetIntegerv(GL_VIEWPORT, viewport);
+
+	std::vector<int> notToCheck;
+	unsigned char R_pixel;
+
+	for(int r = 1; r < height-1; r++)
+		for (int c = 1; c < width-1; c++)
+		{
+			int indx = (r * width + c) * pixelOffset;
+			int shapeIndx = int(pixelsData[indx]) - 1;
+			if (std::find(notToCheck.begin(), notToCheck.end(), shapeIndx) == notToCheck.end()) // if not in notToCheck
+			{
+				if (shapeIndx != cubeMapIndx && shapeIndx != 204)
+				{
+					// if need to check shape and shape not yet in pickedShapes, insert it
+					if(std::find(pickedShapes.begin(), pickedShapes.end(), shapeIndx) == pickedShapes.end())
+						pickedShapes.push_back(shapeIndx);
+
+					if (r == 1)
+					{
+						if (scissorsWindow.y - 1 < 0) // if shape on the edge of the scissor window and edge of screen, not picked
+						{
+							std::vector<int>::iterator toErase;
+							toErase=std::find(pickedShapes.begin(), pickedShapes.end(), shapeIndx);
+							if (toErase != pickedShapes.end())
+								pickedShapes.erase(toErase);
+
+							notToCheck.push_back(shapeIndx);
+							continue;
+						}
+						R_pixel = pixelsData[((r - 1)*width + c)*pixelOffset];
+						if (int(R_pixel) - 1 == shapeIndx)
+						{
+							std::vector<int>::iterator toErase;
+							toErase=std::find(pickedShapes.begin(), pickedShapes.end(), shapeIndx);
+							if (toErase != pickedShapes.end())
+								pickedShapes.erase(toErase);
+
+							notToCheck.push_back(shapeIndx);
+							continue;
+						}
+					}
+					else if (r == height - 2)
+					{
+						if (scissorsWindow.y + 1 >= viewport[3]) // if shape on the edge of the scissor window and edge of screen, not picked
+						{
+							std::vector<int>::iterator toErase;
+							toErase=std::find(pickedShapes.begin(), pickedShapes.end(), shapeIndx);
+							if (toErase != pickedShapes.end())
+								pickedShapes.erase(toErase);
+
+							notToCheck.push_back(shapeIndx);
+							continue;
+						}
+						R_pixel = pixelsData[((r + 1)*width + c)*pixelOffset];
+						if (int(R_pixel) - 1 == shapeIndx)
+						{
+							std::vector<int>::iterator toErase;
+							toErase=std::find(pickedShapes.begin(), pickedShapes.end(), shapeIndx);
+							if (toErase != pickedShapes.end())
+								pickedShapes.erase(toErase);
+
+							notToCheck.push_back(shapeIndx);
+							continue;
+						}
+					}
+				
+					if (c == 1)
+					{
+						if (scissorsWindow.x - 1 < 0) // if shape on the edge of the scissor window and edge of screen, not picked
+						{
+							std::vector<int>::iterator toErase;
+							toErase=std::find(pickedShapes.begin(), pickedShapes.end(), shapeIndx);
+							if (toErase != pickedShapes.end())
+								pickedShapes.erase(toErase);
+
+							notToCheck.push_back(shapeIndx);
+							continue;
+						}
+						R_pixel = pixelsData[(r*width + c-1)*pixelOffset];
+						if (int(R_pixel) - 1 == shapeIndx)
+						{
+							std::vector<int>::iterator toErase;
+							toErase=std::find(pickedShapes.begin(), pickedShapes.end(), shapeIndx);
+							if (toErase != pickedShapes.end())
+								pickedShapes.erase(toErase);
+
+							notToCheck.push_back(shapeIndx);
+							continue;
+						}
+					}
+					else if (c == width - 2)
+					{
+						if (scissorsWindow.x + 1 >= viewport[2]) // if shape on the edge of the scissor window and edge of screen, not picked
+						{
+							std::vector<int>::iterator toErase;
+							toErase=std::find(pickedShapes.begin(), pickedShapes.end(), shapeIndx);
+							if (toErase != pickedShapes.end())
+								pickedShapes.erase(toErase);
+
+							notToCheck.push_back(shapeIndx);
+							continue;
+						}
+						R_pixel = pixelsData[(r*width + c+1)*pixelOffset];
+						if (int(R_pixel) - 1 == shapeIndx)
+						{
+							std::vector<int>::iterator toErase;
+							toErase=std::find(pickedShapes.begin(), pickedShapes.end(), shapeIndx);
+							if (toErase != pickedShapes.end())
+								pickedShapes.erase(toErase);
+
+							notToCheck.push_back(shapeIndx);
+							continue;
+						}
+					}
+				}
+			}
+		}
+	delete(pixelsData);
+	if (pickedShapes.empty())
+		return false;
+	return true;
+}
+
 //return coordinates in global system for a tip of arm position is local system 
 void Scene::MouseProccessing(int button, int xrel, int yrel)
 {
@@ -170,15 +354,22 @@ void Scene::MouseProccessing(int button, int xrel, int yrel)
 	}
 	else
 	{
-		pickedShape = 0;
-		ShapeTransformation(yRotate, xrel / 2.0f);
-		pickedShape = -1;
-		//MyRotate(-xrel / 2.0f, glm::vec3(0, 1, 0), 0);
-		//MyRotate(-yrel / 2.0f, glm::vec3(1, 0, 0), 1);
+		MyRotate(-xrel / 2.0f, glm::vec3(0, 1, 0), 0);
+		MyRotate(-yrel / 2.0f, glm::vec3(1, 0, 0), 0);
 		WhenRotate();
 	}
 	//}
 
+}
+
+void Scene::CreateScissorsPlane(double endPointX, double endPointY)
+{
+	int viewport[4];
+	glGetIntegerv(GL_VIEWPORT, viewport);
+	glm::vec2 lowerLeft = glm::vec2(fmin(scissorsX, endPointX), fmin(viewport[3] - scissorsY, viewport[3] - endPointY));
+	glm::vec2 upperRight = glm::vec2(fmin(fmax(scissorsX, endPointX), viewport[2]), fmax(viewport[3] - scissorsY, viewport[3] - endPointY));
+	glm::vec2 planeSize = upperRight - lowerLeft;
+	scissorsWindow = glm::vec4(lowerLeft.x, lowerLeft.y, planeSize.x, planeSize.y);
 }
 
 void Scene::ZeroShapesTrans()
@@ -212,6 +403,10 @@ void Scene::BindMaterial(Shader* s, unsigned int materialIndx)
 		materials[materialIndx]->Bind(textures, i);
 		s->SetUniform1i("sampler" + std::to_string(i + 1), materials[materialIndx]->GetSlot(i));
 	}
+}
+
+void Scene::AddShapeInPlace(int type, unsigned int mode, int place) {
+	shapes.insert(shapes.begin() + place, new Shape(type, mode));
 }
 
 Scene::~Scene(void)

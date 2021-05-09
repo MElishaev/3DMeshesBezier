@@ -43,9 +43,11 @@ void MovableGLM::MyTranslate(const glm::vec3 delta,int mode)
 void  MovableGLM::MyRotate(float angle,const glm::vec3 &vec,int mode)
 {
 	if (mode == 0)
-		rot = glm::rotate(glm::mat4(1), angle, vec)*rot;
+		rot = glm::rotate(glm::mat4(1), glm::degrees(angle), vec)*rot;
 	else
-		rot = glm::rotate(rot,angle,glm::vec3(glm::transpose(rot)*glm::vec4(vec,0)));
+		rot = glm::rotate(glm::mat4(1), glm::degrees(angle), vec);
+		//rot = glm::rotate(rot,angle,glm::vec3(glm::transpose(rot)*glm::vec4(vec,0)));
+
 }
 	
 void  MovableGLM::MyScale(const glm::vec3 scale)

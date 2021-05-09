@@ -2,10 +2,12 @@
 #define TEXTURE_H
 
 #include <string>
+#include <vector>
 
 class Texture
 {
 public:
+	Texture(std::vector<std::string> faces); // for cubemap generation
 	Texture(const std::string& fileName,const int dim);
 	Texture(int width, int height,unsigned char *data);
 	Texture(int width, int height);

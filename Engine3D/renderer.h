@@ -49,10 +49,19 @@ public:
 	void Draw(int infoIndx = 1);
 	void DrawAll();
 
+	// camera related
+	void scaleCamera(int camIndex, float yoffset);
+	void AddCamera(const glm::vec3& pos, float fov, float relationWH, float zNear, float zFar, int infoIndx = -1);
+	void MoveCamera(int cameraIndx, int type, float amt);
+	void RotateCamera(int cameraIndx, glm::vec3 rotationAxis, float amt);
+	inline void TranslateCamera(int cameraIndx, glm::vec3 delta) { cameras[cameraIndx]->MyTranslate(delta, 0); };
+	inline float GetNear(int cameraIndx) { return cameras[cameraIndx]->GetNear(); }
+	inline float GetFar(int cameraIndx) { return cameras[cameraIndx]->GetFar(); }
+	inline float GetAngle(int cameraIndx) { return cameras[cameraIndx]->GetAngle(); }
+	inline glm::mat4 GetCameraTransformation(int cameraIndx) { return cameras[cameraIndx]->MakeTrans(); }
 
 	void Resize(int width, int height);
 	void UpdatePosition(float xpos, float ypos);
-	void AddCamera(const glm::vec3& pos, float fov, float relationWH, float zNear, float zFar, int infoIndx = -1);
 	void AddViewport(int left, int bottom, int width, int height);
 	unsigned int AddBuffer(int infoIndx, bool stencil = false);
 	int Create2Dmaterial(int texsNum);
@@ -60,12 +69,8 @@ public:
 	void CopyDraw(int infoIndx, int buff = 0);
 	void SetViewport(int left, int bottom, int width, int height, int indx);
 	inline void BindViewport2D(int indx) { drawInfo[indx]->SetFlags(is2D); }
-	void MoveCamera(int cameraIndx, int type, float amt);
 	bool Picking(int x, int y);
 	void MouseProccessing(int button);
-	inline float GetNear(int cameraIndx) { return cameras[cameraIndx]->GetNear(); }
-	inline float GetFar(int cameraIndx) { return cameras[cameraIndx]->GetFar(); }
-	inline float GetAngle(int cameraIndx) { return cameras[cameraIndx]->GetAngle(); }
 	inline void SetDrawFlag(int infoIndx,unsigned int flag) { drawInfo[infoIndx]->SetFlags(flag); }
 	inline void ClearDrawFlag(int infoIndx, unsigned int flag) { drawInfo[infoIndx]->ClearFlags(flag); }
 	bool checkViewport(int x, int y, int viewportIndx);

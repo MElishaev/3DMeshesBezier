@@ -17,9 +17,12 @@ public:
 	glm::vec3 GetVelosity(int segment, int t); //returns the derivative of the curve in the requested segment for the value of t
 	void SplitSegment(int segment, int t);  // split a segment into two parts
 	void AddSegment(glm::vec4 p1, glm::vec4 p2, glm::vec4 p3);  // add a segment at the end of the curve
+	glm::mat4 GetSegment(int segment);
+	void AddSegmentInPlace(glm::mat4 segment1, glm::mat4 segment2, int place);
+	void removeSegment(int pick);
 	void CurveUpdate(int pointIndx, float dx, float dy, bool preserveC1 = false);  //change the line in by using ChangeLine function of MeshConstructor and MoveControlPoint 
 	
-	inline unsigned int GetSegmentsNum() const { return segments.size(); }
+	inline int GetSegmentsNum() const { return segments.size(); }
 	~Bezier1D(void);
 };
 

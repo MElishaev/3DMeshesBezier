@@ -21,7 +21,7 @@ int main(int argc,char *argv[])
 	rndr->Init(scn,x,y); // adding scene and viewports to the renderer
 	display.SetRenderer(rndr);  // updating renderer in as a user pointer in glfw
 								//For 2D rendering
-	rndr->Create2Dmaterial(1);
+	//rndr->Create2Dmaterial(1);
 	//Orthographic camera.
 	rndr->AddCamera(glm::vec3(0,0,0),0,1,-1,1,infoIndx);
 	rndr->BindViewport2D(infoIndx);

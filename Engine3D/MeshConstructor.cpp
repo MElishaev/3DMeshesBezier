@@ -141,7 +141,6 @@ void MeshConstructor::CopyLine(const MeshConstructor& mesh) {
 void MeshConstructor::ChangeLine(IndexedModel& model)
 {
 	int verticesNum = model.positions.size(); // to change only part of the line
-	//indicesNum = model.indices.size();
 
 	vao.Bind();
 
@@ -154,6 +153,8 @@ void MeshConstructor::ChangeLine(IndexedModel& model)
 	//	ib = new IndexBuffer((unsigned int*)model.GetData(VEC2_ATTRIB_NUM + VEC3_ATTRIB_NUM), indicesNum);
 
 	vao.Unbind();
+
+	indicesNum = model.indices.size();
 
 }
 

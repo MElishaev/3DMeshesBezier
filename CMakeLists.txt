@@ -17,5 +17,4 @@ file(COPY ${PROJECT_SOURCE_DIR}/res DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 add_library(Display ${DISPLAY})
 add_library(Engine ${ENGINE})
 
-add_subdirectory(${PROJECT_SOURCE_DIR}/Game)
-add_subdirectory(${PROJECT_SOURCE_DIR}/Game2)
+add_subdirectory(${PROJECT_SOURCE_DIR}/Bezier)

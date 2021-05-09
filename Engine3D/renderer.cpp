@@ -37,7 +37,7 @@ void Renderer::Init(Scene* scene,  std::list<int>xViewport,  std::list<int>yView
 		viewports.push_back(viewport);
 		drawInfo.push_back(new DrawInfo(0, 0, 1, 0,  toClear | depthTest ));
 	}
-	else
+	else // if we have more than 1 viewport, do this
 	{
 		xViewport.push_front(viewport.x);
 		yViewport.push_front(viewport.y);
@@ -56,7 +56,14 @@ void Renderer::Init(Scene* scene,  std::list<int>xViewport,  std::list<int>yView
 			}
 		}
 	}
+	drawInfo.push_back(new DrawInfo(0, 0, 1, 0, depthTest));
+	SetDrawFlag(1, stencilTest);
+}
 
+void Renderer::scaleCamera(int camIndex, float yoffset) {
+	float scale;
+	yoffset > 0 ? scale = 1.1 : scale = 0.9;
+	cameras[camIndex]->MyScale(glm::vec3(scale, scale, scale));
 }
 
 void Renderer::Draw(int infoIndx)
@@ -86,8 +93,9 @@ void Renderer::Draw(int infoIndx)
 	else
 		glDisable(GL_BLEND);
 
-	glm::mat4 MVP = cameras[info.cameraIndx]->GetViewProjection() * glm::inverse(cameras[info.cameraIndx]->MakeTrans());
-
+	glm::mat4 VP = cameras[info.cameraIndx]->GetViewProjection() * glm::inverse(cameras[info.cameraIndx]->MakeTrans());
+	glm::mat4 proj = cameras[info.cameraIndx]->GetViewProjection();
+	glm::mat4 view = glm::inverse(cameras[info.cameraIndx]->MakeTrans());
 	if (info.flags & toClear)
 	{
 		if (info.flags & blackClear)
@@ -95,7 +103,11 @@ void Renderer::Draw(int infoIndx)
 		else
 			Clear(1, 1, 1, 1);
 	}
-	scn->Draw(info.shaderIndx, MVP, info.viewportIndx, debugMode);
+	// in case of scissor's draw info without scissors flag, no point to draw
+	if (infoIndx == 3 && !(info.flags & scissorTest))
+		return;
+
+	scn->Draw(info.shaderIndx, VP, view, proj, info.viewportIndx, info.flags);
 
 }
 
@@ -104,14 +116,14 @@ void Renderer::DrawAll()
 	for (int i = 0; i < drawInfo.size(); i++)
 	{
 		if (!(drawInfo[i]->flags & inAction))
-			Draw( i);
+			Draw(i);
 	}
 }
 
 bool Renderer::Picking(int x, int y)
 {
 	//picking from camera 0 and using shader 0
-	if (x >= 800)
+	if (x >= 800 && !scn->IsScissoring())
 	{
 		drawInfo[0]->SetViewport(1);
 		drawInfo[0]->SetCamera(1);
@@ -124,15 +136,22 @@ bool Renderer::Picking(int x, int y)
 	ActionDraw();
 
 	GLint viewport[4];
-	unsigned char data[4];
 	glGetIntegerv(GL_VIEWPORT, viewport); //reading viewport parameters
-	std::cout << viewport[0] << "," << viewport[1] << "," << viewport[2] << "," << viewport[3] << std::endl;
-	glReadPixels(x, viewport[3] - y, 1, 1, GL_RGBA, GL_UNSIGNED_BYTE, data);
-	glReadPixels(x, viewport[3] - y, 1, 1, GL_DEPTH_COMPONENT, GL_FLOAT, &depth);
-	
-	return scn->Picking(data);
-	//return depth;
-
+	if (!scn->IsScissoring())
+	{
+		unsigned char data[4];
+		glReadPixels(x, viewport[3] - y, 1, 1, GL_RGBA, GL_UNSIGNED_BYTE, data);
+		glReadPixels(x, viewport[3] - y, 1, 1, GL_DEPTH_COMPONENT, GL_FLOAT, &depth);
+		return scn->Picking(data);
+	}
+	else
+	{
+		unsigned char* rectData;
+		glm::vec4 window = scn->GetScissorsWindow();
+		rectData = new unsigned char[4 * window.z * window.w];
+		glReadPixels(window.x, window.y, window.z, window.w, GL_RGBA, GL_UNSIGNED_BYTE, rectData);
+		return scn->WindowPicking(rectData);
+	}
 }
 
 void Renderer::MouseProccessing(int button)
@@ -252,6 +271,11 @@ void Renderer::MoveCamera(int cameraIndx, int type, float amt)
 	default:
 		break;
 	}
+}
+
+void Renderer::RotateCamera(int cameraIndx, glm::vec3 rotationAxis, float amt)
+{
+	cameras[cameraIndx]->MyRotate(amt, rotationAxis, 0);
 }
 
 bool Renderer::checkViewport(int x, int y, int viewportIndx)

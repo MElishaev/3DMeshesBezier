@@ -39,7 +39,7 @@ public:
 	MeshConstructor(const int type);
 	MeshConstructor(const MeshConstructor& mesh);
 	MeshConstructor(const std::string& fileName);
-	MeshConstructor::MeshConstructor(const IndexedModel& model, bool isMesh);
+	MeshConstructor(const IndexedModel& model, bool isMesh);
 	//MeshConstructor::MeshConstructor(const IndexedModel& c);
 	//MeshConstructor::MeshConstructor(Bezier2D* surf);
 

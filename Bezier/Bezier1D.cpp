@@ -3,6 +3,34 @@
 
 void Bezier1D::MoveControlPoint(int segment, int indx, float dx, float dy, bool preserveC1)
 {
+	if (segment >= GetSegmentsNum())
+	{
+		indx = 3;
+		segment--;
+	}
+
+	glm::mat4 seg = glm::transpose(segments[segment]);
+	glm::vec4 vec2change = seg[indx];
+	vec2change.x += dx;
+	vec2change.y += dy;
+	seg[indx] = vec2change;
+	segments[segment] = glm::transpose(seg);
+
+	if (indx == 0 && segment > 0)
+	{
+		segment--;
+		indx = 3;
+	}
+	else if (indx == 3 && segment < GetSegmentsNum() - 1)
+	{
+		segment++;
+		indx = 0;
+	}
+	else return;
+
+	seg = glm::transpose(segments[segment]);
+	seg[indx] = vec2change;
+	segments[segment] = glm::transpose(seg);
 }
 
 Bezier1D::Bezier1D(int segNum, int res, int mode, int viewport) : Shape(mode)
@@ -69,10 +97,22 @@ IndexedModel Bezier1D::GetLine()
 
 glm::vec4 Bezier1D::GetControlPoint(int segment, int indx) const
 {
+	if (segment == GetSegmentsNum() && indx == 0)
+	{
+		segment--;
+		indx = 3;
+	}
 	if (segment < GetSegmentsNum())
 		return glm::transpose(segments[segment])[indx];
 	else
 		std::cout << "ERROR:: Segment given is out of range.\n";
+	return glm::vec4(-1, -1, -1, -1);
+}
+
+glm::vec4 Bezier1D::GetPointOnCurve(int segment, int t)
+{
+
+	return glm::vec4();
 }
 
 void Bezier1D::AddSegment(glm::vec4 p1, glm::vec4 p2, glm::vec4 p3)
@@ -93,9 +133,29 @@ void Bezier1D::AddSegment(glm::vec4 p1, glm::vec4 p2, glm::vec4 p3)
 	}
 }
 
+glm::mat4 Bezier1D::GetSegment(int segment) {
+	if (segment < GetSegmentsNum())
+		return glm::transpose(segments[segment]);
+	else
+		std::cout << "ERROR:: Segment given is out of range.\n";
+	return glm::mat4();
+}
+
+void Bezier1D::AddSegmentInPlace(glm::mat4 segment1, glm::mat4 segment2, int place) {
+	segments.insert(segments.begin() + place, glm::transpose(segment1));
+	segments.insert(segments.begin() + (place+1), glm::transpose(segment2));
+	delete(mesh);
+	mesh = new MeshConstructor(GetLine(), false);
+}
+
+void Bezier1D::removeSegment(int pick)
+{
+	segments.erase(segments.begin()+pick);
+}
+
 void Bezier1D::CurveUpdate(int pointIndx, float dx, float dy, bool preserveC1)
 {
-	MoveControlPoint((pointIndx-2)/3, (pointIndx-2)%3, dx, dy, preserveC1);
+	MoveControlPoint((pointIndx-3)/3, (pointIndx-3)%3, dx, dy, preserveC1);
 	IndexedModel model = GetLine();
 	mesh->ChangeLine(model);
 }
